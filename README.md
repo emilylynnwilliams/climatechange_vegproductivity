@@ -1,6 +1,7 @@
 # climatechange_vegproductivity
 
-https://zenodo.org/badge/607842634.svg
+<a href="https://zenodo.org/badge/latestdoi/607842634"><img src="https://zenodo.org/badge/607842634.svg" alt="DOI"></a>
+
 
 This R project creates the figures found in Williams, Funk, and Shukla 2023. The .rmd file contains the script to create the figures, using data found in the data folder. 
 
