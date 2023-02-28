@@ -1,0 +1,742 @@
+---
+title: "Figures for Williams et al. 2023"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-02-16"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = F, message=F, warning=F)
+```
+
+# About this script 
+
+This script reproduces the figures in Williams, Funk, and Shukla 2023. 
+
+Williams, Emily; Funk, Chris; Shukla, Shraddhanand. (2023)."Anthropogenic Climate Change is Negatively Impacting Vegetation and Forage Conditions in the Greater Four Corners Region." Earth's Future. 
+
+```{r packages}
+
+rm(list=ls()) # empty the working space 
+
+# Wrangling packages: 
+library(lubridate) #package for interpreting and manipulating dates 
+library(dplyr) # package for tidy piping 
+library(reshape2) # wide to long format: melt 
+library(RColorBrewer) # color palettes
+library(colorspace) # scale_fill_continuous_divergingx
+
+# Plotting packages: 
+library(ggplot2) #package for nice plotting
+library(scales) #package for changing plot scaling 
+library(ggpubr) # for arranging multiple ggplots 
+
+# Statistical packages:
+library(car)
+library(Hmisc)
+
+# Geospatial packages:
+library(sf) # shapefiles/vector  
+library(raster) # rasters 
+
+```
+
+```{r data}
+
+# Used for multiple figures: 
+admin_crop <- readRDS("data/admin.rds") 
+rivers.sf <- readRDS("data/rivers.rds") 
+
+# Figure 1: 
+admin_croplarge <- readRDS("data/fig1_adminlarge.rds") 
+usdm_bboxlarge <- readRDS("data/fig1_usdmbboxlarge.rds") #
+
+# Figure 2: 
+modis_seacyc <- stack("data/fig1_modis_seacyc.tif")
+max_ndvimonth <- stack("data/fig1_max_ndvimonth.tif")
+lc_reclass <- stack("data/fig1_lc_reclass.tif")
+dem <- stack("data/fig1_dem.tif")
+vpdmax_seacyc <- stack("data/fig1_vpdmax_seacyc.tif")
+precip_seacyc <- stack("data/fig1_precip_seacyc.tif")
+
+# Figure 3: 
+s2_r2 <- raster("data/fig2_r2.tif")
+s2_pval <- raster("data/fig2_pval.tif")
+s2_vcoef <- raster("data/fig2_vcoef.tif")
+s2_pcoef <- raster("data/fig2_pcoef.tif")
+
+# Figure 4:
+maskplot <- raster("data/fig4_bins.tif")
+
+# Figure 5: 
+tmax_deltas_cmip6_usingobsrec_df <- read.csv("data/fig5_cmip6_tmax_deltas_usingobsrec.csv")
+
+# Figure 6:
+julaugvpd_cf_grassdry <- read.csv("data/julaugvpd_cf_grassdry_feb2023.csv")
+julaugvpd_cf_grassmid <- read.csv("data/julaugvpd_cf_grassmid_feb2023.csv")
+julaugvpd_cf_grasswet <- read.csv("data/julaugvpd_cf_grasswet_feb2023.csv")
+julaugvpd_cf_shrubdry <- read.csv("data/julaugvpd_cf_shrubdry_feb2023.csv")
+julaugvpd_cf_shrubmid <- read.csv("data/julaugvpd_cf_shrubmid_feb2023.csv")
+julaugvpd_cf_shrubwet <- read.csv("data/julaugvpd_cf_shrubwet_feb2023.csv")
+
+julaugvpd_grassdry <- read.csv("data/julaugvpd_grassdry_feb2023.csv")
+julaugvpd_grassmid <- read.csv("data/julaugvpd_grassmid_feb2023.csv")
+julaugvpd_grasswet <- read.csv("data/julaugvpd_grasswet_feb2023.csv")
+julaugvpd_shrubdry <- read.csv("data/julaugvpd_shrubdry_feb2023.csv")
+julaugvpd_shrubmid <- read.csv("data/julaugvpd_shrubmid_feb2023.csv")
+julaugvpd_shrubwet <- read.csv("data/julaugvpd_shrubwet_feb2023.csv")
+
+# Figure 7:
+
+ndvihat_shrubdry <- read.csv("data/ndvihat_z_shrubdry_cmip6_deltavpd_version.csv")
+ndvihat_shrubmid <- read.csv("data/ndvihat_z_shrubmid_cmip6_deltavpd_version.csv")
+ndvihat_shrubwet <- read.csv("data/ndvihat_z_shrubwet_cmip6_deltavpd_version.csv")
+ndvihat_grassdry <- read.csv("data/ndvihat_z_grassdry_cmip6_deltavpd_version.csv")
+ndvihat_grassmid <- read.csv("data/ndvihat_z_grassmid_cmip6_deltavpd_version.csv")
+ndvihat_grasswet <- read.csv("data/ndvihat_z_grasswet_cmip6_deltavpd_version.csv")
+
+ndvihatcf_shrubdry_cmip6 <- read.csv("data/ndvicf_z_shrubdry_cmip6_deltavpd_version.csv")
+ndvihatcf_shrubmid_cmip6 <- read.csv("data/ndvicf_z_shrubmid_cmip6_deltavpd_version.csv")
+ndvihatcf_shrubwet_cmip6 <- read.csv("data/ndvicf_z_shrubwet_cmip6_deltavpd_version.csv")
+ndvihatcf_grassdry_cmip6 <- read.csv("data/ndvicf_z_grassdry_cmip6_deltavpd_version.csv")
+ndvihatcf_grassmid_cmip6 <- read.csv("data/ndvicf_z_grassmid_cmip6_deltavpd_version.csv")
+ndvihatcf_grasswet_cmip6 <- read.csv("data/ndvicf_z_grasswet_cmip6_deltavpd_version.csv")
+
+# Figure 8: 
+tracts <- readRDS("data/fig8_tracts_npp.rds") # plot cf ANPP reductions by census tracts 
+
+# Figure S3: 
+counties <- readRDS("data/figS3_counties_npp.rds") # plot cf ANPP reductions by census tracts 
+
+# End reading in data. 
+
+```
+
+# Figure 1: 
+
+```{r fig_1}
+
+bbox <- st_set_crs(st_as_sf(as(raster::extent(xmin(extent(modis_seacyc)), xmax(extent(modis_seacyc)),
+                                   ymin(extent(modis_seacyc)), ymax(extent(modis_seacyc))),
+                    "SpatialPolygons")),  st_crs(usdm_bboxlarge))
+
+# recreate color scheme: https://droughtmonitor.unl.edu/DmData/Metadata.aspx
+names_usdm <- c("D0: Abnormally Dry", "D1: Moderate Drought", "D2: Severe Drought",
+               "D3: Extreme Drought", "D4: Exceptional Drought")
+usdm_colorscheme <- setNames( c("#FFFF00","#FCD37F", "#FFAA00", "#E60000", "#730000"),
+                              unique(usdm_bboxlarge$DM))
+
+ggplot() +
+  geom_sf(data = usdm_bboxlarge, aes(fill = factor(DM))) +
+  geom_sf(data = bbox, fill=alpha("black", 0), color="black",linewidth=1.5) +
+  geom_sf(data = admin_croplarge, fill=alpha("black", 0), color="gray",linewidth=0.5) +
+  geom_sf_label(data = admin_croplarge, aes(label = NAME_1), size=4,
+    nudge_x = c(-0, 0, 0, 0),
+    nudge_y = c(-1, 1, -1, 0.5)) + 
+  xlab("") + ylab("") + theme_bw() +
+  scale_fill_manual(name = "USDM Drought Class:", values = usdm_colorscheme, labels = names_usdm) +
+  ggtitle("Study Region and USDM Drought Classification", subtitle="December 29, 2020")  +
+  theme(plot.margin = unit(c(0,0.1,0.1,0), "lines")) +
+  theme(axis.text.x = element_text(angle=45))
+
+
+```
+
+# Figure 2: 
+
+```{r fig_2}
+
+mytheme <- theme(axis.text.x=element_text(size=10), axis.text.y=element_text(size=10), 
+                 axis.title=element_text(size=14), plot.margin = unit(c(0,0,0,0), "lines"),
+                 plot.title = element_text(size = 14, hjust = 0.5), 
+                 legend.text = element_text(size = 12), legend.title = element_text(size = 12), 
+                 legend.box.spacing = unit(0.5, "pt")) 
+
+
+maxndvipts <- rasterToPoints(max(modis_seacyc), spatial = TRUE)
+maxndvidf  <- data.frame(maxndvipts)
+colnames(maxndvidf) <- c("layer","x","y","optional")
+rm(maxndvipts)
+peakndviplot <- ggplot() +
+  geom_raster(data = maxndvidf , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "Max. NDVI", colours = rev(terrain.colors(10))) + 
+  ggtitle("Local Max. NDVI")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+peakmonthpts <- rasterToPoints(max_ndvimonth, spatial=T)
+peakmonthdf <- data.frame(peakmonthpts)
+colnames(peakmonthdf) <- c("layer","x","y","optional")
+rm(peakmonthpts)
+peakmonthplot <- ggplot() +
+  geom_raster(data = peakmonthdf , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "Peak Month", colours = rev(terrain.colors(10))) + 
+  ggtitle("Peak NDVI Month")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+lc_points <- rasterToPoints(lc_reclass, spatial = TRUE)
+lc_df <- data.frame(lc_points)
+colnames(lc_df) <- c("layer","x","y","optional")
+remove(lc_points)
+names <- c("Other","Forest","Shrub","Grass")
+lc_colorscheme <- setNames( c("darkgoldenrod","gray", "forestgreen", "gold"),
+                            unique(lc_df$layer)) 
+landcoverplot <- ggplot() + 
+  geom_raster(data = lc_df, aes(x = x, y = y, fill = factor(layer))) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0))  + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_manual(name = "Classification", values = lc_colorscheme, labels = names) + 
+  ggtitle("Land Cover")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+
+dem_points <- rasterToPoints(dem, spatial = TRUE)
+dem_df <- data.frame(dem_points)
+colnames(dem_df) <- c("layer","x","y","optional")
+remove(dem_points)
+elevationplot <- ggplot() + 
+  geom_raster(data = dem_df , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "Elevation (m)", colours = terrain.colors(10)) + 
+  ggtitle("Elevation")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+vpd_points <- rasterToPoints(vpdmax_seacyc[[8]], spatial = TRUE)
+vpd_df <- data.frame(vpd_points)
+colnames(vpd_df) <- c("layer","x","y","optional")
+remove(vpd_points)
+vpdplot <- ggplot() + 
+  geom_raster(data = vpd_df , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "VPDmax (hPa)", colours=rev(brewer.pal(10,"Spectral"))) + 
+  ggtitle("August VPDmax")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+precip_points <- rasterToPoints(calc(precip_seacyc, sum), spatial = TRUE)
+precip_df <- data.frame(precip_points)
+colnames(precip_df) <- c("layer","x","y","optional")
+remove(precip_points)
+brk <- c(0, 200, 400, 600, 800, 1000, 1200)
+precipplot <- ggplot() + 
+  geom_raster(data = subset(precip_df, layer <= 1200), aes(x = x, y = y, fill = layer)) + 
+  geom_raster(data = subset(precip_df, layer > 1200), aes(x = x, y = y), fill="slateblue4") + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "Precip (mm)", colours=brewer.pal(6,"PuOr"), 
+                        breaks = brk) + 
+  ggtitle("Annual Precip")  + 
+  mytheme + scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+# Note, in ggarrange, adding empty (NULL) plots betwee plots allows for changing widths to negative, to reduce white space between plots 
+ggarrange(peakndviplot, NULL, landcoverplot, 
+          NULL, NULL, NULL, 
+          elevationplot, NULL, peakmonthplot, 
+          NULL, NULL, NULL, 
+          vpdplot, NULL, precipplot,
+          nrow=5, ncol=3, align="hv", 
+          widths = c(1, -0.02, 1),
+          heights = c(1, -0.25, 1, -0.25, 1), 
+          labels = c("A", "", "B", "", "", "", 
+                     "C", "", "D", "", "", "", 
+                     "E", "", "F"))
+
+```
+
+# Figure 3: 
+
+```{r fig_3}
+
+mytheme <- theme(legend.key.width=unit(0.3,"cm"), legend.key.height=unit(0.8,"cm"), 
+                 legend.position="right", 
+                 legend.text = element_text(size = 14), legend.title = element_text(size = 14),
+                 axis.text=element_text(size=10), 
+                 axis.title=element_text(size=14), plot.margin = unit(c(0.1,0.2,0,0), "lines"), 
+                 plot.title = element_text(size = 14, hjust = 0.5)) 
+
+
+r2pts <- rasterToPoints(s2_r2, spatial = TRUE)
+r2df  <- data.frame(r2pts)
+rm(r2pts)
+colnames(r2df) <- c("layer","x","y","optional")
+r2plot <- ggplot() +
+  geom_raster(data = r2df , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_gradientn(name = "", colours = brewer.pal(9,"YlGnBu")) + 
+  ggtitle("Model Fit (r2)")  + mytheme + 
+  scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+pvalpts <- rasterToPoints(s2_pval, spatial = TRUE)
+pvaldf  <- data.frame(pvalpts)
+rm(pvalpts)
+
+pvalplot <- ggplot() + 
+  geom_raster(data=pvaldf, aes(x=x, y=y, fill=fig2_pval), 
+              show.legend = TRUE) +
+  scale_fill_gradient(name="",limits=range(pvaldf$fig2_pval), 
+                      high = 'white', low = 'red') +
+  geom_contour(data = pvaldf,
+               aes(x=x, y=y, z=fig2_pval, colour = ..level..),
+               breaks=c(0.05), col="black") +
+  scale_colour_gradient(guide = 'none') + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  ggtitle("VPDmax p-val") + mytheme + 
+  scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+
+vcoefpts <- rasterToPoints(s2_vcoef, spatial = TRUE)
+vcoefdf  <- data.frame(vcoefpts)
+rm(vcoefpts)
+colnames(vcoefdf) <- c("layer","x","y","optional")
+vcoefplot <- ggplot() +
+  geom_raster(data = vcoefdf , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_continuous_divergingx(name = "", palette = 'BrBG', mid = 0.0, 
+                                   l1 = 1, l3 = 1, l2 = 99) + 
+  ggtitle("VPDmax Coef.") + mytheme + 
+  scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+pcoefpts <- rasterToPoints(s2_pcoef, spatial = TRUE)
+pcoefdf  <- data.frame(pcoefpts)
+rm(pcoefpts)
+colnames(pcoefdf) <- c("layer","x","y","optional")
+pcoefplot <- ggplot() +
+  geom_raster(data = pcoefdf , aes(x = x, y = y, fill = layer)) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) + 
+  geom_sf(data = rivers.sf, color = "blue") + 
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_continuous_divergingx(name = "", palette = 'BrBG', mid = 0.0, 
+                                   l1 = 1, l3 = 1, l2 = 99) + 
+  ggtitle("Precip Coef.") + mytheme + 
+  scale_x_continuous(breaks=seq(-112, -105, by = 3.5)) +
+  scale_y_continuous(breaks=seq(39, 34, by = -2.5)) 
+
+ggarrange(
+  r2plot, ggplot() + theme_void(),  pvalplot,
+  ggplot() + theme_void(),  ggplot() + theme_void(),  ggplot() + theme_void(),  
+  pcoefplot, ggplot() + theme_void(),  vcoefplot,
+  nrow = 3, ncol=3, widths = c(1, -0.04, 1), heights = c(1, -0.1, 1),
+  labels = c("A", "", "B", "", "", "",
+             "C", "", "D"), 
+  align = "h")
+
+```
+
+# Figure 4: 
+
+```{r fig_4}
+
+mytheme <- theme(legend.text = element_text(size = 14), legend.title = element_text(size = 14),
+                 plot.margin = unit(c(0.1,0.1,0,0), "lines"), 
+                 plot.title = element_text(size = 14, hjust = 0.5), 
+                 axis.text=element_text(size=10), axis.text.x = element_text(angle=45), 
+                 axis.title=element_text(size=14)) 
+  
+maskpts <- rasterToPoints(maskplot, spatial = TRUE)
+maskdf  <- data.frame(maskpts)
+rm(maskpts)
+
+ggplot() +
+  geom_raster(data = maskdf , aes(x = x, y = y, fill = factor(layer))) + 
+  geom_sf(data = admin_crop, fill=alpha("black", 0)) +
+  geom_sf(data = rivers.sf, color = "blue") +
+  xlab("") + ylab("") + theme_bw() + 
+  scale_fill_manual(name = "Zones", 
+                    limits = c("10","11","12","20","21","22","0"), 
+                    values = c("10"="#fff7bc","11"="#fec44f","12"="#d95f0e",
+                               "20"="#e5f5f9", "21"="#99d8c9", "22"="#2ca25f",
+                               "0"="gray20"), 
+                    labels = c("Dry Shrub", "Mid Shrub", "Wet Shrub",
+                               "Dry Grass", "Mid Grass", "Wet Grass", "Not Modeled")) + 
+  ggtitle("Vegetation-Precipitation Regimes") + mytheme
+
+```
+
+# Figure 5: 
+
+```{r fig_5}
+
+# Wrangle data frame: drop index # and ensemble average; melt into long format: 
+deltas_usingobsrec2 <- tmax_deltas_cmip6_usingobsrec_df[,c(2, 4:ncol(tmax_deltas_cmip6_usingobsrec_df))] 
+deltas_usingobsrec_melted <- melt(deltas_usingobsrec2, id = c("dates"))
+
+# Subset to < 2021, and get Jul-Aug mean: 
+deltas_usingobsrec_melted_short <- subset(deltas_usingobsrec_melted, year(dates) < 2021)
+tmp <- subset(deltas_usingobsrec_melted_short, month(dates) %in% c(07,08))
+julaug_cmip6_tmaxcf_obsrec_df <- as.data.frame(tmp %>% group_by(year(dates), variable) %>% 
+                                                 summarise(t = mean(value)))
+colnames(julaug_cmip6_tmaxcf_obsrec_df) <- c("year","model","t_att")
+
+# Calculate 2010-2020 mean attributable increase in Tmax: 
+subset_2010_2020 <- subset(julaug_cmip6_tmaxcf_obsrec_df, year %in% c(2010:2020))
+julaug_20102020_mean <- round(mean(subset_2010_2020$t_att, na.rm=T), 2)
+
+# Calculate confidence interval (based on SD, bootstrap approach): 
+myyears <- unique(julaug_cmip6_tmaxcf_obsrec_df$year)
+mylist <- list()
+for(i in 1:71) {
+  mysub <- subset(julaug_cmip6_tmaxcf_obsrec_df, year == myyears[i]) 
+  n <- 10000
+  x <- rnorm(n, sd = sd(mysub$t_att, na.rm=T)) + mean(mysub$t_att, na.rm=T)
+  mylist[[i]] <- data.frame(year = myyears[i], lwr = sort(x)[n*0.05], 
+                            mid = sort(x)[n*0.5], upr = sort(x)[(n*0.05)*19])
+}
+myci <- do.call(rbind, mylist)
+
+PRISM_Tmax_standard_deviation = 0.8286396 # inter-annual standard deviation of Jul-Aug mean Tmax from PRISM (1950-2020)
+
+ggplot(data = julaug_cmip6_tmaxcf_obsrec_df) + 
+  stat_summary(aes(x = year, y = t_att), geom = "line", fun = "mean") +
+  geom_ribbon(data = myci, aes(x = year, ymin = lwr, ymax = upr), alpha=0.2) + 
+  geom_hline(aes(yintercept = PRISM_Tmax_standard_deviation), color = "blue", linetype = 'dotted', key_glyph = "smooth") + 
+  geom_hline(aes(yintercept = -PRISM_Tmax_standard_deviation), color = "blue", linetype = 'dotted', key_glyph = "smooth") + 
+  xlab("Date") + ylab("Tmax (C)") + 
+  ggtitle("Attributable Jul-Aug Tmax Difference", 
+          subtitle = paste("2010-2020 mean difference: ", julaug_20102020_mean, sep="")) + 
+  theme(axis.text=element_text(size=12), axis.title=element_text(size=14), 
+        plot.title = element_text(size = 14)) 
+
+```
+
+# Figure 6: 
+
+```{r fig_6}
+
+################################################################################
+# Melt:  
+julaugvpd_cf_grassdry_melted <- melt(julaugvpd_cf_grassdry, id = c("dates"))
+julaugvpd_cf_grassmid_melted <- melt(julaugvpd_cf_grassmid, id = c("dates"))
+julaugvpd_cf_grasswet_melted <- melt(julaugvpd_cf_grasswet, id = c("dates"))
+julaugvpd_cf_shrubdry_melted <- melt(julaugvpd_cf_shrubdry, id = c("dates"))
+julaugvpd_cf_shrubmid_melted <- melt(julaugvpd_cf_shrubmid, id = c("dates"))
+julaugvpd_cf_shrubwet_melted <- melt(julaugvpd_cf_shrubwet, id = c("dates"))
+
+################################################################################
+# Calculate Time of Emergence (toe): first year after which upper bound of CI on model is consistently greater than PRISM. Get the CI from stat_summary: 
+
+toe_attdiff_fun <- function(vpd_actual, vpdcf, titl) {
+  vpdcf$dates <- as.Date(vpdcf$dates)
+  vpd_actual$dates2 <- as.Date(vpd_actual$dates2)
+  
+  # Calculate CI manually (based on SD, bootstrap appraoch): 
+  mydates <- unique(vpdcf$dates)
+  mylist <- list()
+  for(i in 1:71) {
+    mysub <- subset(vpdcf, dates == mydates[i])
+    n <- 100000 # Note, high number for reproducibility. 
+    x <- rnorm(n, sd = sd(mysub$value, na.rm=T)) + mean(mysub$value, na.rm=T)
+    mylist[[i]] <- data.frame(date = mydates[i], lwr = sort(x)[n*0.05], 
+                              mid = sort(x)[n*0.5], upr = sort(x)[(n*0.05)*19])
+  }
+  myci <- do.call(rbind, mylist)  
+  
+  myplot <- ggplot() +
+    geom_line(data = vpd_actual[56:126,], aes(x = dates2, y = x, color="Actual")) + 
+    stat_summary(data = vpdcf, aes(dates, value, color = "Counterfactual"), 
+                 geom = "line", fun = mean) +
+    geom_ribbon(data = myci, aes(x = date, ymin = lwr, ymax = upr), alpha=0.2) + 
+    xlab("") + ylab("Jul-Aug VPDmax") + ggtitle(titl) 
+  
+  prism <- ggplot_build(myplot)$data[[1]]$y #PRISM
+  cmip_max <- ggplot_build(myplot)$data[[3]]$ymax #CMIP SE upper bound (see by looking @ ggplot_build(myplot)$data, [[3]] has ymin/ymax)
+  diff <- prism - cmip_max
+  df <- data.frame(dates = vpdcf$dates, diff)
+  yesno <- ifelse(df$diff > 0, 1, 0)
+  toe <- year(df$dates) * yesno #years where VPDactual is above VPDcf 
+
+  for(i in 1:length(toe) ){ 
+    x <- min(toe[i:71]) # pull lowest value 
+    if (x > 0) {
+      toe_yr <- year(df$dates)[i] # first year after which there are no 0s 
+      break
+    }
+  }
+
+  # Calculate mean attributable difference in VPDmax 
+  prism <- ggplot_build(myplot)$data[[1]]$y #PRISM
+  cmip_mean <- ggplot_build(myplot)$data[[2]]$y 
+
+  att_diff_cmip <- prism - cmip_mean
+  att_diff_2020_cmip <- round(att_diff_cmip[71], 2)
+  att_diff_2010_2020_cmip <- round(mean(att_diff_cmip[61:71]), 2)
+  
+  my_df <- data.frame(toe = toe_yr, att_diff_2020 = att_diff_2020_cmip,
+                      att_diff_2010_2020 = att_diff_2010_2020_cmip)
+  return(my_df) 
+}
+
+
+vpdcf_drygrass_toe <- toe_attdiff_fun(julaugvpd_grassdry, julaugvpd_cf_grassdry_melted, 
+                                "Low Precip Grassland")
+vpdcf_midgrass_toe <- toe_attdiff_fun(julaugvpd_grassmid, julaugvpd_cf_grassmid_melted, 
+                                "Mid Precip Grassland")
+vpdcf_wetgrass_toe <- toe_attdiff_fun(julaugvpd_grasswet, julaugvpd_cf_grasswet_melted, 
+                                "High Precip Grassland")
+vpdcf_dryshrub_toe <- toe_attdiff_fun(julaugvpd_shrubdry, julaugvpd_cf_shrubdry_melted, 
+                                "Low Precip Shrubland")
+vpdcf_midshrub_toe <- toe_attdiff_fun(julaugvpd_shrubmid, julaugvpd_cf_shrubmid_melted, 
+                                "Mid Precip Shrubland")
+vpdcf_wetshrub_toe <- toe_attdiff_fun(julaugvpd_shrubwet, julaugvpd_cf_shrubwet_melted, 
+                                "High Precip Shrubland")
+
+plot_fun <- function(vpd_actual, vpdcf, titl, mytoe) {
+  mydf <- toe_attdiff_fun(vpd_actual, vpdcf, titl)
+  dates <- as.Date(vpd_actual[56:126,1])
+  att_diff <- data.frame(dates, (vpd_actual[56:126,2] - vpdcf[,2:ncol(vpdcf)]))
+  att_diff_melted <- melt(att_diff, id = c("dates"))
+
+  # Calculate CI manually (based on SD, bootstrap appraoch):
+  mydates <- unique(att_diff_melted$dates)
+  mylist <- list()
+  for(i in 1:71) {
+    mysub <- subset(att_diff_melted, dates == mydates[i])
+    n = 100000
+    x <- rnorm(n, sd = sd(mysub$value, na.rm=T)) + mean(mysub$value, na.rm=T)
+    mylist[[i]] <- data.frame(date = mydates[i], lwr = sort(x)[n*0.05], 
+                              mid = sort(x)[n*0.5], upr = sort(x)[(n*0.05)*19])
+  }
+  myci <- do.call(rbind, mylist)    
+  
+  mytheme <- theme(axis.text=element_text(size=10), axis.title=element_text(size=14),
+                 plot.title = element_text(size = 14, hjust = 0.5),
+                 legend.text = element_text(size = 12), legend.title = element_text(size = 14),
+                 legend.position="right")
+  colsfils <- c("Mean" = "black", "SD" = "blue", "TOE" = "red")
+
+  earlyvpd <- subset(vpd_actual, year(dates2) < 1980)
+  mysd <- sd(earlyvpd[,2])
+  my_ylab <- ifelse(titl == "Mid Precip Grassland", "ΔVPDmax (hPa)", "")
+  ggplot() +
+    coord_cartesian(ylim=c(-2, 6)) +
+    geom_vline(aes(xintercept = mytoe[1,1], color="TOE"), key_glyph = "smooth") + 
+    geom_ribbon(data = myci, aes(x = year(date), ymin = lwr, ymax = upr), alpha=0.2) + 
+    stat_summary(data = att_diff_melted, aes(year(dates), value, color= "Mean"),
+                 geom = "line", fun = mean, key_glyph = "smooth") +
+    geom_hline(aes(yintercept = mysd, color="SD"), linetype = 'dotted', key_glyph = "smooth") + 
+    xlab("") + ylab(my_ylab) +
+    ggtitle(titl) + mytheme +
+    scale_colour_manual(name="", values = colsfils, breaks = c("Mean", "TOE", "SD"),
+                        labels = c(expression("Attributable "*Delta*"VPDmax"),
+                                    "TOE", "SD actual VPDmax")) 
+}
+
+
+vpdcf_drygrassplot <- plot_fun(julaugvpd_grassdry, julaugvpd_cf_grassdry_melted, 
+                                "Low Precip Grassland", vpdcf_drygrass_toe)
+vpdcf_midgrassplot <- plot_fun(julaugvpd_grassmid, julaugvpd_cf_grassmid_melted, 
+                                "Mid Precip Grassland", vpdcf_midgrass_toe)
+vpdcf_wetgrassplot <- plot_fun(julaugvpd_grasswet, julaugvpd_cf_grasswet_melted, 
+                                "High Precip Grassland", vpdcf_wetgrass_toe)
+vpdcf_dryshrubplot <- plot_fun(julaugvpd_shrubdry, julaugvpd_cf_shrubdry_melted, 
+                                "Low Precip Shrubland", vpdcf_dryshrub_toe)
+vpdcf_midshrubplot <- plot_fun(julaugvpd_shrubmid, julaugvpd_cf_shrubmid_melted, 
+                                "Mid Precip Shrubland", vpdcf_midshrub_toe)
+vpdcf_wetshrubplot <- plot_fun(julaugvpd_shrubwet, julaugvpd_cf_shrubwet_melted, 
+                                "High Precip Shrubland", vpdcf_wetshrub_toe)
+
+
+vpdcfplots <- ggarrange(vpdcf_drygrassplot, ggplot() + theme_void(),  vpdcf_dryshrubplot,
+          ggplot() + theme_void(),  ggplot() + theme_void(),  ggplot() + theme_void(),  
+          vpdcf_midgrassplot,  ggplot() + theme_void(), vpdcf_midshrubplot,
+          ggplot() + theme_void(),  ggplot() + theme_void(),  ggplot() + theme_void(),  
+          vpdcf_wetgrassplot, ggplot() + theme_void(),  vpdcf_wetshrubplot,
+          nrow = 5, ncol=3, common.legend = T, legend = "bottom",
+          widths = c(1, -0.01, 1), heights = c(1, -0.1, 1, -0.1, 1))
+
+
+annotate_figure(vpdcfplots, top = text_grob("Attributable Increase in Jul-Aug VPDmax", 
+                                             face = "bold", size = 16),
+               bottom = text_grob("", hjust = 1, x = 0.45, size = 10))
+
+```
+
+# Figure 7: 
+
+```{r fig_7}
+
+melt_function <- function(ndvihat, ndvicf) { 
+  diff1 <- ndvihat[,2] - ndvicf$meanest
+  diff <- data.frame(lwr_ci = ndvicf$lwr_ci, mean_est = diff1, 
+                     upper_ci = ndvicf$upper_ci)
+  diff$year <- 2003:2020
+  diff_melted <- melt(diff, id = c("year"))
+  return(diff)
+}
+
+shrubdry_meandiff_cmip6_melted <- melt_function(ndvihat_shrubdry, ndvihatcf_shrubdry_cmip6)
+shrubmid_meandiff_cmip6_melted <- melt_function(ndvihat_shrubmid, ndvihatcf_shrubmid_cmip6)
+shrubwet_meandiff_cmip6_melted <- melt_function(ndvihat_shrubwet, ndvihatcf_shrubwet_cmip6)
+grassdry_meandiff_cmip6_melted <- melt_function(ndvihat_grassdry, ndvihatcf_grassdry_cmip6)
+grassmid_meandiff_cmip6_melted <- melt_function(ndvihat_grassmid, ndvihatcf_grassmid_cmip6)
+grasswet_meandiff_cmip6_melted <- melt_function(ndvihat_grasswet, ndvihatcf_grasswet_cmip6)
+
+meandiff_cmip6_melted <- dplyr::bind_rows(list("Dry Shrub" = shrubdry_meandiff_cmip6_melted, 
+                                              "Mid Shrub" = shrubmid_meandiff_cmip6_melted, 
+                                              "Wet Shrub" = shrubwet_meandiff_cmip6_melted, 
+                                              "Dry Grass" = grassdry_meandiff_cmip6_melted, 
+                                              "Mid Grass" = grassmid_meandiff_cmip6_melted, 
+                                              "Wet Grass" = grasswet_meandiff_cmip6_melted), 
+                                         .id = "Bin")
+
+shrub_meandiffmelted <- subset(meandiff_cmip6_melted, Bin %in% c("Dry Shrub","Mid Shrub","Wet Shrub"))
+grass_meandiffmelted <- subset(meandiff_cmip6_melted, Bin %in% c("Dry Grass","Mid Grass","Wet Grass"))
+
+
+mycols <- c("Dry Shrub" = "darkgoldenrod2", "Mid Shrub" = "darkolivegreen4", "Wet Shrub" = "dodgerblue3")
+mycols2 <- c("Dry Grass" = "darkgoldenrod2", "Mid Grass" = "darkolivegreen4", "Wet Grass" = "dodgerblue3")
+mytheme <- theme(axis.text=element_text(size=12), axis.title=element_text(size=14), 
+                 plot.title = element_text(size = 14, hjust = 0.5), 
+                 legend.text = element_text(size = 14), legend.title = element_text(size = 14)) 
+
+
+shrubplot <- ggplot(data = shrub_meandiffmelted) + 
+  stat_summary(aes(x = year, y = mean_est, color=Bin), geom = "line", linewidth=1, fun = mean) +
+  geom_ribbon(aes(x = year, ymin = lwr_ci, ymax = upper_ci, fill=Bin), alpha=0.2) + 
+  xlab("Year") + ylab("NDVI (Z-Score)") +
+  ggtitle("Shrublands") + ylim(-1.3, 0) + 
+  scale_colour_manual(name="Precip Regime: \n(90% CI)",
+                      values = mycols, breaks = c("Dry Shrub", "Mid Shrub", "Wet Shrub"),
+                      labels = c("Dry", "Mid", "Wet")) + 
+  scale_fill_manual(name="",values = mycols, breaks = c("Dry Shrub", "Mid Shrub", "Wet Shrub"),
+                      labels = c("Dry", "Mid", "Wet")) +
+  mytheme + 
+  guides(colour=guide_legend(order=1), fill= "none")
+
+
+grassplot <- ggplot(data = grass_meandiffmelted) + 
+  stat_summary(aes(x = year, y = mean_est, color=Bin), geom = "line", linewidth=1, fun = mean) +
+  geom_ribbon(aes(x = year, ymin = lwr_ci, ymax = upper_ci, fill=Bin), alpha=0.2) + 
+  xlab("Year") + ylab("NDVI (Z-Score)") +
+  ggtitle("Grasslands") + ylim(-1.3, 0) + 
+  scale_colour_manual(name="Precip Regime: \n(90% CI)",
+                      values = mycols2, breaks = c("Dry Grass", "Mid Grass", "Wet Grass"),
+                      labels = c("Dry", "Mid", "Wet")) +
+  scale_fill_manual(name="",values = mycols2, breaks = c("Dry Grass", "Mid Grass", "Wet Grass"),
+                      labels = c("Dry", "Mid", "Wet")) +
+  mytheme + 
+  guides(colour=guide_legend(order=1), fill= "none")
+
+myplots <- ggarrange(shrubplot, grassplot, nrow=1, ncol=2, align="h", labels="AUTO",
+                     common.legend=T, legend="right")
+annotate_figure(myplots, top = text_grob("Attributable Reduction in NDVI", 
+                                             face = "bold", size = 20))
+
+
+```
+
+# Figure 8: 
+
+```{r fig_8}
+
+########################################################################
+# Add X,Y for plotting ease:
+
+GEOID <- tracts %>% as.data.frame %>% dplyr::select(GEOID)
+
+x <- st_coordinates(st_centroid(tracts))
+
+X <- x[,1]
+Y <- x[,2]
+
+df <- data.frame(GEOID, X, Y)
+
+tracts <- left_join(tracts, df, by="GEOID")
+
+########################################################################
+# Plot
+
+mytheme <- theme(legend.key.width=unit(0.3,"cm"), legend.key.height=unit(0.8,"cm"), 
+                 legend.position="right", 
+                 legend.text = element_text(size = 14), legend.title = element_text(size = 14),
+                 axis.text=element_text(size=12), axis.text.x = element_text(angle=45), 
+                 axis.title=element_text(size=14), plot.margin = unit(c(0.1,0.2,0,0), "lines"), 
+                 plot.title = element_text(size = 14, hjust = 0.5),
+                 plot.subtitle = element_text(size = 14, hjust = 0.5)) 
+
+tracts$inverted_nppcf_standardizeddiff_2020 <- - (tracts$nppcf_standardizeddiff_2020) 
+
+ggplot(data = tracts) +
+  geom_sf(aes(fill = inverted_nppcf_standardizeddiff_2020)) + 
+  ggtitle("Attributable Difference ANPP (Standardized)",
+          subtitle = "2020") + 
+  scale_fill_continuous_divergingx(name = "Z-Score", palette = 'BrBG', rev=F, mid = 0,
+                                   l1 = 1, l3 = 1, l2 = 99) +
+  xlab("") + ylab("") + theme_bw() + mytheme 
+
+# End. 
+
+```
+
+# Figure S3: 
+
+```{r fig_S3}
+
+GEOID <- counties %>% as.data.frame %>% dplyr::select(GEOID)
+
+x <- st_coordinates(st_centroid(counties))
+
+X <- x[,1]
+Y <- x[,2]
+
+df <- data.frame(GEOID, X, Y)
+
+counties <- left_join(counties, df, by="GEOID")
+
+########################################################################
+# Plot
+
+#colnames(counties)
+
+mytheme <- theme(legend.key.width=unit(0.3,"cm"), legend.key.height=unit(0.8,"cm"), 
+                 legend.position="right", 
+                 legend.text = element_text(size = 14), legend.title = element_text(size = 14),
+                 axis.text=element_text(size=12), axis.text.x = element_text(angle=45), 
+                 axis.title=element_text(size=14), plot.margin = unit(c(0.1,0.2,0,0), "lines"), 
+                 plot.title = element_text(size = 14, hjust = 0.5),
+                 plot.subtitle = element_text(size = 14, hjust = 0.5)) 
+
+cattleplot <- ggplot(data = counties) +
+  geom_sf(aes(fill = log(cattle/1000))) +
+  scale_fill_gradientn(name = " ", colours = brewer.pal(9,"YlGnBu")) + 
+  ggtitle("Cattle") +
+  xlab("") + ylab("") + theme_bw() + mytheme 
+
+sheepplot <- ggplot(data = counties) +
+  geom_sf(aes(fill = log(sheep/1000))) +
+  scale_fill_gradientn(name = " ", colours = brewer.pal(9,"YlGnBu")) + 
+  ggtitle("Sheep") +
+  xlab("") + ylab("") + theme_bw() + mytheme 
+
+ggarrange(cattleplot, sheepplot, nrow=1, ncol=2)
+
+
+```
+
