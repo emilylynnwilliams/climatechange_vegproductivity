@@ -541,6 +541,7 @@ plot_fun <- function(vpd_actual, vpdcf, titl, mytoe) {
     stat_summary(data = att_diff_melted, aes(year(dates), value, color= "Mean"),
                  geom = "line", fun = mean, key_glyph = "smooth") +
     geom_hline(aes(yintercept = mysd, color="SD"), linetype = 'dotted', key_glyph = "smooth") + 
+    geom_hline(aes(yintercept = -mysd, color="SD"), linetype = 'dotted', key_glyph = "smooth") + 
     xlab("") + ylab(my_ylab) +
     ggtitle(titl) + mytheme +
     scale_colour_manual(name="", values = colsfils, breaks = c("Mean", "TOE", "SD"),
