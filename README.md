@@ -1,4 +1,4 @@
-# climatechange_vegproductivity
+# Data and Code for 'Anthropogenic Climate Change Negatively Impacts Vegetation and Forage Conditions in the Greater Four Corners Region' 
 
 <a href="https://zenodo.org/badge/latestdoi/607842634"><img src="https://zenodo.org/badge/607842634.svg" alt="DOI"></a>
 
